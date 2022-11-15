@@ -11,6 +11,10 @@ SECRET_KEY = env.str('SECRET_KEY')
 
 DEBUG = env.bool('DEBUG')
 
+BOT_TOKEN = env.str('BOT_TOKEN')
+
+TELEGRAM_API_BASE_URL = f'https://api.telegram.org/bot{BOT_TOKEN}'
+
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
@@ -83,8 +87,11 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+TRIAL_PERIOD_DAYS = 3
+SUBSCRIPTION_DAYS = 30

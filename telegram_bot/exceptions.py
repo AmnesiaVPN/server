@@ -10,3 +10,7 @@ class UserAlreadyExistsError(APIException):
 class UserNotFoundError(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     default_detail = _('User not found')
+
+
+class TelegramAPIError(Exception):
+    pass
