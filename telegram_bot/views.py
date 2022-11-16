@@ -49,7 +49,8 @@ def create_user_view(request):
         'telegram_id': user_create_serializer.data['telegram_id'],
         'is_trial_period': user.is_trial_period,
         'subscribed_at': user.subscribed_at,
-        'subscription_expire_at': calculate_expiration_time(user.subscribed_at, user.is_trial_period)
+        'subscription_expire_at': calculate_expiration_time(user.subscribed_at, user.is_trial_period),
+        'is_subscribed': user.is_subscribed,
     }
     return Response(response_data)
 
@@ -62,5 +63,6 @@ def get_user_view(request, telegram_id: int):
         'is_trial_period': user.is_trial_period,
         'subscribed_at': user.subscribed_at,
         'subscription_expire_at': calculate_expiration_time(user.subscribed_at, user.is_trial_period),
+        'is_subscribed': user.is_subscribed,
     }
     return Response(response_data)
