@@ -1,0 +1,47 @@
+name: Django Unit Tests
+
+on: [push, pull_request]
+
+env:
+  SECRET_KEY: DsJpNGozudx3LwAfSAE2SGVEXRuYdCtDCWzRTZnTWopB7Dp9tpzPm4Ii1O0Qy4Nu
+  DEBUG: false
+  BOT_TOKEN: BU9xj4JargGed62y8NylOXn7myokc5dMgQjAyTS55yTxQiNnQI1g8YfheaeOuPsr
+  DONATION_ALERTS_ACCESS_TOKEN: 5aZ5xKalPbik4wIoIuQdh60MtajmhXdGQ0hzVkmZZsZN4BoM1bIUmNzRBSg1W3ozvyspNDBRtRxKFPreV4ThZvNDOUYRgjDdFWbAbu6ZKOYxT7SkgYX9XzyobIDP7wxy
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Set up python
+        id: setup-python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Install library
+        run: poetry install --no-interaction
+
+      - name: Run tests
+        run: |
+          source .venv/bin/activate
+          python manage.py test
