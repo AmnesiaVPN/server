@@ -13,6 +13,8 @@ DEBUG = env.bool('DEBUG')
 
 BOT_TOKEN = env.str('BOT_TOKEN')
 
+DONATION_ALERTS_ACCESS_TOKEN = env.str('DONATION_ALERTS_ACCESS_TOKEN')
+
 TELEGRAM_API_BASE_URL = f'https://api.telegram.org/bot{BOT_TOKEN}'
 
 ALLOWED_HOSTS = []
