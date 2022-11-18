@@ -23,7 +23,6 @@ def get_users_with_expired_subscription(subscription_period: datetime.timedelta,
 
 @shared_task
 def expiring_users_notification():
-    text = 'У вас заканчивается подписка, вы не сможете пользоваться ВПН. Стоимость продления 300 руб.'
     now = datetime.datetime.utcnow()
     users = User.objects.filter(is_subscribed=True).values('telegram_id', 'subscribed_at', 'is_trial_period')
     for user in users:
@@ -32,12 +31,19 @@ def expiring_users_notification():
         print(time_before_expiration)
         if (60 * 60 * 24 - 25) <= time_before_expiration <= (60 * 60 * 24 + 25):
             try:
-                telegram.send_message(user['telegram_id'], text)
+                telegram.send_warning_message(user['telegram_id'], 'Ваша подписка заканчивается через 24 часа.'
+                                                                   ' Стоимость продления 299 рублей.'
+                                                                   '\nВажно❗️'
+                                                                   f'\nПри оплате в комментарии укажите имя вашего файла "{user.telegram_id}"')
+
             except TelegramAPIError:
                 print(f'Unable to send message to user {user["telegram_id"]}')
         elif (60 * 60 - 25) <= time_before_expiration <= (60 * 60 + 25):
             try:
-                telegram.send_message(user['telegram_id'], text)
+                telegram.send_warning_message(user['telegram_id'], 'Ваша подписка заканчивается через 1 час.'
+                                                                   ' Стоимость продления 299 рублей.'
+                                                                   '\nВажно❗️'
+                                                                   f'\nПри оплате в комментарии укажите имя вашего файла "{user.telegram_id}"')
             except TelegramAPIError:
                 print(f'Unable to send message to user {user["telegram_id"]}')
 
@@ -61,8 +67,11 @@ def trial_period_expired_users():
                     print(f'Unable to disable user')
 
                 try:
-                    telegram.send_message(user.telegram_id, 'Пробный период использования закончился. '
-                                                            'Продлите подписку чтобы продолжить пользоваться')
+                    telegram.send_warning_message(user.telegram_id, 'Пробный период использования закончился.'
+                                                                    ' Продлите подписку чтобы продолжить пользоваться.'
+                                                                    ' Стоимость продления 299 рублей'
+                                                                    '\nВажно❗️'
+                                                                    f'\nПри оплате в комментарии укажите имя вашего файла "{user.telegram_id}"')
                 except TelegramAPIError:
                     print(f'Unable to send message to user {user.telegram_id}')
 
@@ -72,7 +81,8 @@ def trial_period_expired_users():
 @shared_task
 def subscription_period_expired_users():
     subscription_period_timedelta = datetime.timedelta(days=settings.SUBSCRIPTION_DAYS)
-    users_with_expired_subscription = get_users_with_expired_subscription(subscription_period_timedelta, is_trial_period=False)
+    users_with_expired_subscription = get_users_with_expired_subscription(subscription_period_timedelta,
+                                                                          is_trial_period=False)
     server_to_users = group_users_by_server(users_with_expired_subscription)
 
     users_to_be_updated = []
@@ -89,8 +99,11 @@ def subscription_period_expired_users():
                     print(f'Unable to disable user')
 
                 try:
-                    telegram.send_message(user.telegram_id, 'Ваш ваша подписка закончилась.'
-                                                            ' Продлите подписку чтобы продолжить пользоваться')
+                    telegram.send_warning_message(user.telegram_id, 'Ваша подписка закончилась.'
+                                                                    ' Вы отключены от VPN. Стоимость продления 299 рублей'
+                                                                    '\nВажно❗️'
+                                                                    f'\nПри оплате в комментарии укажите имя вашего файла "{user.telegram_id}"')
+
                 except TelegramAPIError:
                     print(f'Unable to send message to user {user.telegram_id}')
 

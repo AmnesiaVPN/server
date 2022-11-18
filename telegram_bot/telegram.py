@@ -13,3 +13,23 @@ def send_message(chat_id: int, text: str) -> bool:
         return response.json()['ok']
     except (httpx.HTTPError, json.JSONDecodeError):
         raise TelegramAPIError
+
+
+def send_warning_message(chat_id: int, text: str) -> bool:
+    url = f'{settings.TELEGRAM_API_BASE_URL}/sendMessage'
+    body = {
+        'chat_id': chat_id,
+        'text': text,
+        'reply_markup': {
+            'inline_keyboard': [
+                [
+                    {'text': 'Перейти к оплате', 'url': 'https://www.donationalerts.com/r/blackwebsites'}
+                ]
+            ]
+        }
+    }
+    try:
+        response = httpx.post(url, json=body)
+        return response.json()['ok']
+    except (httpx.HTTPError, json.JSONDecodeError):
+        raise TelegramAPIError
