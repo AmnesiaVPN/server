@@ -4,6 +4,9 @@ import uuid
 import httpx
 from pydantic import parse_obj_as
 
+from telegram_bot.exceptions import UserNotFoundError
+from telegram_bot.models import User
+
 from wireguard import exceptions
 from wireguard.schemas import User, UserCreated
 
@@ -64,3 +67,11 @@ def connected_client(base_url: str, password: str) -> httpx.Client:
     with httpx.Client(base_url=base_url) as client:
         login(client, password)
         yield client
+
+
+def get_user_config(telegram_id: int) -> str:
+    user = User.objects.select_related('server').filter(telegram_id=telegram_id).first()
+    if not user:
+        raise UserNotFoundError
+    with vpn_server.connected_client(user.server.url, user.server.password) as client:
+        return vpn_server.get_user_config_file(client, user.uuid).text.strip()
