@@ -23,8 +23,4 @@ class User(BaseModel):
     uuid: UUID = Field(alias='id')
     latest_handshake_at: datetime.datetime | None = Field(alias='latestHandshakeAt')
     name: str
-    persistent_keepalive: str = Field(alias='persistentKeepalive')
-    public_key: str = Field(alias='publicKey')
-    transfer_rx: int = Field(alias='transferRx')
-    transfer_tx: int = Field(alias='transferTx')
     updated_at: datetime.datetime = Field(alias='updatedAt')
