@@ -15,6 +15,10 @@ BOT_TOKEN = env.str('BOT_TOKEN')
 
 DONATION_ALERTS_ACCESS_TOKEN = env.str('DONATION_ALERTS_ACCESS_TOKEN')
 
+CELERY_BROKER_URL = env.str('CELERY_BROKER_URL')
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
 TELEGRAM_API_BASE_URL = f'https://api.telegram.org/bot{BOT_TOKEN}'
 
 ALLOWED_HOSTS = []
@@ -26,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_beat',
     'rest_framework',
     'telegram_bot',
     'wireguard',
