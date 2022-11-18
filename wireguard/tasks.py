@@ -12,12 +12,12 @@ from wireguard.services import vpn_server
 from wireguard.services.queries import group_users_by_server
 
 
-def get_users_with_expired_subscription(subscription_period: datetime.timedelta):
+def get_users_with_expired_subscription(subscription_period: datetime.timedelta, is_trial_period: bool):
     now = datetime.datetime.utcnow()
     return (
         User.objects
         .select_related('server')
-        .filter(is_subscribed=True, subscribed_at__lte=now - subscription_period)
+        .filter(is_subscribed=True, is_trial_period=is_trial_period, subscribed_at__lte=now - subscription_period)
     )
 
 
@@ -45,7 +45,7 @@ def expiring_users_notification():
 @shared_task
 def trial_period_expired_users():
     trial_period_timedelta = datetime.timedelta(days=settings.TRIAL_PERIOD_DAYS)
-    users_with_expired_subscription = get_users_with_expired_subscription(trial_period_timedelta)
+    users_with_expired_subscription = get_users_with_expired_subscription(trial_period_timedelta, is_trial_period=True)
     server_to_users = group_users_by_server(users_with_expired_subscription)
     users_to_be_updated = []
     for server, users in server_to_users.items():
@@ -72,13 +72,14 @@ def trial_period_expired_users():
 @shared_task
 def subscription_period_expired_users():
     subscription_period_timedelta = datetime.timedelta(days=settings.SUBSCRIPTION_DAYS)
-    users_with_expired_subscription = get_users_with_expired_subscription(subscription_period_timedelta)
+    users_with_expired_subscription = get_users_with_expired_subscription(subscription_period_timedelta, is_trial_period=False)
     server_to_users = group_users_by_server(users_with_expired_subscription)
 
     users_to_be_updated = []
     for server, users in server_to_users.items():
         with vpn_server.connected_client(server.url, server.password) as client:
             for user in users:
+                print(user)
                 user.is_subscribed = False
                 users_to_be_updated.append(user)
 
@@ -88,7 +89,8 @@ def subscription_period_expired_users():
                     print(f'Unable to disable user')
 
                 try:
-                    telegram.send_message(user.telegram_id, 'Ваш ваша подписка закончилась')
+                    telegram.send_message(user.telegram_id, 'Ваш ваша подписка закончилась.'
+                                                            ' Продлите подписку чтобы продолжить пользоваться')
                 except TelegramAPIError:
                     print(f'Unable to send message to user {user.telegram_id}')
 

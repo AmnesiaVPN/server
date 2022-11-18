@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 
-from wireguard.services.vpn_server import get_user_config
+from wireguard.services.queries import get_user_config
 
 
 def user_config_view(request, telegram_id: int):
