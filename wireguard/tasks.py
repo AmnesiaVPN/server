@@ -34,7 +34,7 @@ def expiring_users_notification():
                 telegram.send_warning_message(user['telegram_id'], 'Ваша подписка заканчивается через 24 часа.'
                                                                    ' Стоимость продления 299 рублей.'
                                                                    '\nВажно❗️'
-                                                                   f'\nПри оплате в комментарии укажите имя вашего файла "{user.telegram_id}"')
+                                                                   f'\nПри оплате в комментарии укажите имя вашего файла <b>{user.telegram_id}</b>')
 
             except TelegramAPIError:
                 print(f'Unable to send message to user {user["telegram_id"]}')
@@ -43,7 +43,7 @@ def expiring_users_notification():
                 telegram.send_warning_message(user['telegram_id'], 'Ваша подписка заканчивается через 1 час.'
                                                                    ' Стоимость продления 299 рублей.'
                                                                    '\nВажно❗️'
-                                                                   f'\nПри оплате в комментарии укажите имя вашего файла "{user.telegram_id}"')
+                                                                   f'\nПри оплате в комментарии укажите имя вашего файла <b>{user.telegram_id}</b>')
             except TelegramAPIError:
                 print(f'Unable to send message to user {user["telegram_id"]}')
 
@@ -71,7 +71,7 @@ def trial_period_expired_users():
                                                                     ' Продлите подписку чтобы продолжить пользоваться.'
                                                                     ' Стоимость продления 299 рублей'
                                                                     '\nВажно❗️'
-                                                                    f'\nПри оплате в комментарии укажите имя вашего файла "{user.telegram_id}"')
+                                                                    f'\nПри оплате в комментарии укажите имя вашего файла <b>{user.telegram_id}</b>')
                 except TelegramAPIError:
                     print(f'Unable to send message to user {user.telegram_id}')
 
@@ -102,7 +102,7 @@ def subscription_period_expired_users():
                     telegram.send_warning_message(user.telegram_id, 'Ваша подписка закончилась.'
                                                                     ' Вы отключены от VPN. Стоимость продления 299 рублей'
                                                                     '\nВажно❗️'
-                                                                    f'\nПри оплате в комментарии укажите имя вашего файла "{user.telegram_id}"')
+                                                                    f'\nПри оплате в комментарии укажите имя вашего файла <b>{user.telegram_id}</b>')
 
                 except TelegramAPIError:
                     print(f'Unable to send message to user {user.telegram_id}')

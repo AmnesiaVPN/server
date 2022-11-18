@@ -23,7 +23,7 @@ def send_warning_message(chat_id: int, text: str) -> bool:
         'reply_markup': {
             'inline_keyboard': [
                 [
-                    {'text': 'Перейти к оплате', 'url': 'https://www.donationalerts.com/r/blackwebsites'}
+                    {'text': 'Продлить подписку', 'url': 'https://www.donationalerts.com/r/blackwebsites'}
                 ]
             ]
         }
