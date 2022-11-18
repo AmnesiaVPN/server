@@ -2,28 +2,52 @@ import datetime
 
 from celery import shared_task
 from django.conf import settings
-from django.db.models import Q
 
 from telegram_bot import telegram
 from telegram_bot.exceptions import TelegramAPIError
 from telegram_bot.models import User
+from telegram_bot.services import calculate_expiration_time
 from wireguard.exceptions import VPNServerError
 from wireguard.services import vpn_server
 from wireguard.services.queries import group_users_by_server
 
 
-@shared_task
-def trial_period_expired_users():
+def get_users_with_expired_subscription(subscription_period: datetime.timedelta):
     now = datetime.datetime.utcnow()
-    trial_period_timedelta = datetime.timedelta(days=settings.TRIAL_PERIOD_DAYS)
-    expired_trial_period_users = (
+    return (
         User.objects
         .select_related('server')
-        .filter(Q(is_trial_period=True) | Q(is_subscribed=True), subscribed_at__lte=now - trial_period_timedelta)
-        .all()
+        .filter(is_subscribed=True, subscribed_at__lte=now - subscription_period)
     )
+
+
+@shared_task
+def expiring_users_notification():
+    text = 'У вас заканчивается подписка, вы не сможете пользоваться ВПН. Стоимость продления 300 руб.'
+    now = datetime.datetime.utcnow()
+    users = User.objects.filter(is_subscribed=True).values('telegram_id', 'subscribed_at', 'is_trial_period')
+    for user in users:
+        expire_at = calculate_expiration_time(user['subscribed_at'], user['is_trial_period'])
+        time_before_expiration = (expire_at - now).total_seconds()
+        print(time_before_expiration)
+        if (60 * 60 * 24 - 25) <= time_before_expiration <= (60 * 60 * 24 + 25):
+            try:
+                telegram.send_message(user['telegram_id'], text)
+            except TelegramAPIError:
+                print(f'Unable to send message to user {user["telegram_id"]}')
+        elif (60 * 60 - 25) <= time_before_expiration <= (60 * 60 + 25):
+            try:
+                telegram.send_message(user['telegram_id'], text)
+            except TelegramAPIError:
+                print(f'Unable to send message to user {user["telegram_id"]}')
+
+
+@shared_task
+def trial_period_expired_users():
+    trial_period_timedelta = datetime.timedelta(days=settings.TRIAL_PERIOD_DAYS)
+    users_with_expired_subscription = get_users_with_expired_subscription(trial_period_timedelta)
+    server_to_users = group_users_by_server(users_with_expired_subscription)
     users_to_be_updated = []
-    server_to_users = group_users_by_server(expired_trial_period_users)
     for server, users in server_to_users.items():
         with vpn_server.connected_client(server.url, server.password) as client:
             for user in users:
@@ -47,16 +71,11 @@ def trial_period_expired_users():
 
 @shared_task
 def subscription_period_expired_users():
-    now = datetime.datetime.utcnow()
     subscription_period_timedelta = datetime.timedelta(days=settings.SUBSCRIPTION_DAYS)
-    expired_trial_period_users = (
-        User.objects
-        .select_related('server')
-        .filter(is_subscribed=True, subscribed_at__lte=now - subscription_period_timedelta)
-        .all()
-    )
+    users_with_expired_subscription = get_users_with_expired_subscription(subscription_period_timedelta)
+    server_to_users = group_users_by_server(users_with_expired_subscription)
+
     users_to_be_updated = []
-    server_to_users = group_users_by_server(expired_trial_period_users)
     for server, users in server_to_users.items():
         with vpn_server.connected_client(server.url, server.password) as client:
             for user in users:
