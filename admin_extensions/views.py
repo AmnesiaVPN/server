@@ -3,10 +3,11 @@ from django.urls import reverse_lazy
 from django.views.generic import FormView
 
 from admin_extensions.forms import BroadcastForm
+from admin_extensions.mixins import SuperuserRequiredMixin
 from telegram_bot.tasks import start_broadcasting
 
 
-class BroadcastView(FormView):
+class BroadcastView(SuperuserRequiredMixin, FormView):
     template_name = 'admin_extensions/broadcast.html'
     form_class = BroadcastForm
     success_url = reverse_lazy('broadcast')
