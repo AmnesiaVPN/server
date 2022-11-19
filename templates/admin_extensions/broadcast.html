@@ -1,0 +1,31 @@
+{% extends 'admin/base_site.html' %}
+
+{% block messages %}
+    {% if messages %}
+        <ul class="messagelist">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <form method="post">
+        <fieldset class="module aligned">
+            <div>
+                {{ form.text.label }}
+            </div>
+            <div>
+                {{ form.text }}
+            </div>
+            <div>
+                {{ form.results_notify_to.label }}
+            </div>
+            <div>
+                {{ form.results_notify_to }}
+            </div>
+            <input type="submit" value="Отправить">
+        </fieldset>
+    </form>
+{% endblock %}
