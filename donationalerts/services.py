@@ -1,9 +1,11 @@
+import json
 from typing import Generator, Iterable
 
 import httpx
 from pydantic import parse_obj_as
 
 from donationalerts.schemas import Donation
+from donationalerts.exceptions import DonationalertsError
 
 
 class DonationAlertsClient:
@@ -22,6 +24,9 @@ class DonationAlertsClient:
         server_errors_count = 0
         with httpx.Client(headers=self.headers) as client:
             while True:
+                if server_errors_count >= self.__attempts_on_server_error_count:
+                    raise DonationalertsError
+
                 params = {'page': page}
 
                 try:
@@ -30,11 +35,15 @@ class DonationAlertsClient:
                     server_errors_count += 1
                     continue
 
-                if response.is_server_error and server_errors_count < self.__attempts_on_server_error_count:
+                if response.is_server_error:
                     server_errors_count += 1
                     continue
 
-                response_json = response.json()
+                try:
+                    response_json = response.json()
+                except json.JSONDecodeError:
+                    raise DonationalertsError
+
                 if not response_json['data']:
                     break
                 yield parse_obj_as(list[Donation], response_json['data'])

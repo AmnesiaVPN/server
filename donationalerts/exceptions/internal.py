@@ -1,0 +1,2 @@
+class DonationalertsError(Exception):
+    pass
