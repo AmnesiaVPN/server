@@ -4,7 +4,6 @@ from typing import Generator, Iterable
 import httpx
 from pydantic import parse_obj_as
 
-from donationalerts.exceptions import UserPaymentNotFoundError
 from donationalerts.schemas import Donation
 
 
@@ -41,12 +40,3 @@ def is_donation_time_expired(donation_time: datetime.datetime) -> bool:
     delta = datetime.datetime.utcnow() - donation_time
     day_in_seconds = 24 * 60 * 60
     return delta.total_seconds() > day_in_seconds
-
-
-def find_user_donation(specific_text: str, client: DonationAlertsClient):
-    for donations in client.iter_all_donations():
-        donations = find_donations_with_specific_message(specific_text, donations)
-        for donation in donations:
-            if not is_donation_time_expired(donation.created_at):
-                return donation
-    raise UserPaymentNotFoundError

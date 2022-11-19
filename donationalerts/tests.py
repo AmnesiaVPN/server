@@ -62,19 +62,3 @@ class TestDonationalerts(SimpleTestCase):
         self.assertSetEqual({2, 3}, self.find_donations_and_get_ids('hello world'))
         self.assertSetEqual({1}, self.find_donations_and_get_ids('534654234'))
         self.assertSetEqual(set(), self.find_donations_and_get_ids('spameggs'))
-
-    def test_find_user_donation(self):
-
-        class FakeDonationalertsClient:
-
-            def iter_all_donations(*args, **kwargs) -> Generator[list[Donation], None, None]:
-                for donation in self.donations:
-                    yield [donation]
-
-        fake_donationalerts_client = FakeDonationalertsClient()
-
-        donation = find_user_donation('534654234', fake_donationalerts_client)
-        self.assertEquals(donation.id, 1)
-
-        with self.assertRaises(UserPaymentNotFoundError):
-            find_user_donation('534ggdfgdf', fake_donationalerts_client)
