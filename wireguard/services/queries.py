@@ -3,7 +3,7 @@ from typing import Iterable, DefaultDict
 
 from django.db.models import F, Count
 
-from telegram_bot.exceptions import UserNotFoundError
+from telegram_bot.exceptions import UserNotFoundAPIError
 from telegram_bot.models import User
 from wireguard.models import Server
 from wireguard.services import vpn_server
@@ -30,6 +30,6 @@ def group_users_by_server(users: Iterable[User]) -> DefaultDict[Server, list[Use
 def get_user_config(telegram_id: int) -> str:
     user = User.objects.select_related('server').filter(telegram_id=telegram_id).first()
     if not user:
-        raise UserNotFoundError
+        raise UserNotFoundAPIError
     with vpn_server.connected_client(user.server.url, user.server.password) as client:
         return vpn_server.get_user_config_file(client, user.uuid).text.strip()

@@ -6,7 +6,7 @@ from pydantic import parse_obj_as
 
 from telegram_bot.models import User
 
-from wireguard import exceptions
+from wireguard.exceptions import VPNServerError, UnauthorizedError
 from wireguard.schemas import User, UserCreated
 
 
@@ -14,8 +14,8 @@ def handle_status_code(status_code: int):
     if 200 <= status_code <= 399:
         return
     elif status_code == 401:
-        raise exceptions.UnauthorizedError
-    raise exceptions.VPNServerError('Unexpected exception')
+        raise UnauthorizedError
+    raise VPNServerError('Unexpected exception')
 
 
 def login(client: httpx.Client, password: str) -> None:
@@ -59,6 +59,14 @@ def disable_user(client: httpx.Client, user_uuid: uuid.UUID):
 def enable_user(client: httpx.Client, user_uuid: uuid.UUID):
     response = client.post(f'/api/wireguard/client/{str(user_uuid)}/enable')
     handle_status_code(response.status_code)
+
+
+def get_or_create_user(client: httpx.Client, name: str) -> User:
+    users = [user for user in get_all_users(client) if user.name == name]
+    if not users:
+        create_user(client, name)
+        return get_or_create_user(client, name)
+    return users[0]
 
 
 @contextlib.contextmanager
