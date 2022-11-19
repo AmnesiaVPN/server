@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'telegram_bot',
     'wireguard',
+    'admin_extensions',
 ]
 
 MIDDLEWARE = [
