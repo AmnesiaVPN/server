@@ -7,8 +7,8 @@ from django.conf import settings
 from telegram_bot.exceptions import TelegramAPIError
 
 
-def get_payment_page_markup() -> list[list[dict]]:
-    return [[{'text': 'Продлить подписку', 'url': settings.PAYMENT_PAGE_URL}]]
+def get_payment_page_markup() -> dict[str, list[list[dict]]]:
+    return {'inline_keyboard': [[{'text': 'Продлить подписку', 'url': settings.PAYMENT_PAGE_URL}]]}
 
 
 def send_message(chat_id: int, text: str, reply_markup: Collection[Collection[dict]] | None = None):
