@@ -3,7 +3,7 @@ import datetime
 from django.test import SimpleTestCase
 
 from donationalerts.schemas import Donation
-from donationalerts.services import is_donation_time_expired, find_donations_with_specific_message
+from donationalerts.services import find_donations_with_specific_message
 
 
 class TestDonationalerts(SimpleTestCase):
@@ -32,25 +32,6 @@ class TestDonationalerts(SimpleTestCase):
                 created_at=datetime.datetime.utcnow(),
             ),
         ]
-
-    def test_is_donation_time_not_expired(self):
-        now = datetime.datetime.utcnow()
-        donation_times = [
-            now - datetime.timedelta(hours=23, minutes=59),
-            now - datetime.timedelta(hours=2, minutes=0),
-            now + datetime.timedelta(hours=54, minutes=59),
-        ]
-        for donation_time in donation_times:
-            self.assertFalse(is_donation_time_expired(donation_time))
-
-    def test_is_donation_time_expired(self):
-        now = datetime.datetime.utcnow()
-        donation_times = [
-            now - datetime.timedelta(hours=24),
-            now - datetime.timedelta(hours=53),
-        ]
-        for donation_time in donation_times:
-            self.assertTrue(is_donation_time_expired(donation_time))
 
     def find_donations_and_get_ids(self, specific_message: str) -> set[int]:
         found_donations = find_donations_with_specific_message(specific_message, self.donations)

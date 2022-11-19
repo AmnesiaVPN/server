@@ -1,4 +1,3 @@
-import datetime
 from typing import Generator, Iterable
 
 import httpx
@@ -44,9 +43,3 @@ class DonationAlertsClient:
 
 def find_donations_with_specific_message(text: str, donations: Iterable[Donation]) -> list[Donation]:
     return [donation for donation in donations if text.lower() in donation.message.lower()]
-
-
-def is_donation_time_expired(donation_time: datetime.datetime) -> bool:
-    delta = datetime.datetime.utcnow() - donation_time
-    day_in_seconds = 24 * 60 * 60
-    return delta.total_seconds() > day_in_seconds
