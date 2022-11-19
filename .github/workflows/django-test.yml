@@ -13,6 +13,7 @@ env:
   DATABASE_PORT: database_port
   DATABASE_HOST: database_host
   DATABASE_PASSWORD: database_password
+  ALLOWED_HOSTS: localhost
 
 jobs:
   test:
