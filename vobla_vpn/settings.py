@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'telegram_bot',
     'wireguard',
     'admin_extensions',
+    'donationalerts',
 ]
 
 MIDDLEWARE = [
