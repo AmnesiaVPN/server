@@ -1,11 +1,9 @@
 import datetime
-from typing import Generator
 
 from django.test import SimpleTestCase
 
-from donationalerts.exceptions import UserPaymentNotFoundError
 from donationalerts.schemas import Donation
-from donationalerts.services import is_donation_time_expired, find_donations_with_specific_message, find_user_donation
+from donationalerts.services import is_donation_time_expired, find_donations_with_specific_message
 
 
 class TestDonationalerts(SimpleTestCase):
