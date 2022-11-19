@@ -23,6 +23,8 @@ TELEGRAM_API_BASE_URL = f'https://api.telegram.org/bot{BOT_TOKEN}'
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
+PAYMENT_PAGE_URL = env.str('PAYMENT_PAGE_URL')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
