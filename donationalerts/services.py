@@ -49,6 +49,9 @@ class DonationAlertsClient:
                 yield parse_obj_as(list[Donation], response_json['data'])
                 page += 1
 
+                if response_json['links']['next'] is None:
+                    break
+
 
 def find_donations_with_specific_message(text: str, donations: Iterable[Donation]) -> list[Donation]:
     return [donation for donation in donations if text.lower() in donation.message.lower()]
