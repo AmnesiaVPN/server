@@ -26,6 +26,8 @@ def sync_payments_in_donationalerts_and_server():
     user_telegram_ids_to_be_notified = []
     for donation in donations_not_in_database:
         for user in users:
+            if donation.message is None:
+                continue
             if str(user['telegram_id']) not in donation.message.lower():
                 continue
             logging.info(f'New payment to user {user["telegram_id"]}')
