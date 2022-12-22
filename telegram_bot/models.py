@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from wireguard.models import Server
 
@@ -10,7 +11,7 @@ class User(models.Model):
     is_trial_period = models.BooleanField(default=True)
     is_subscribed = models.BooleanField(default=True)
     registered_at = models.DateTimeField(auto_now_add=True)
-    subscribed_at = models.DateTimeField(auto_now_add=True)
+    subscribed_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f'User: {self.telegram_id}'
