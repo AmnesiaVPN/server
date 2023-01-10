@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from telegram_bot.models import User
@@ -5,7 +6,7 @@ from telegram_bot.models import User
 
 class PromocodesGroup(models.Model):
     name = models.CharField(max_length=64)
-    count = models.PositiveIntegerField()
+    count = models.PositiveIntegerField(validators=(MinValueValidator(1),))
     expire_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
