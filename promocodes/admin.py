@@ -1,8 +1,9 @@
 from django.contrib import admin
-from django.utils.crypto import get_random_string
+from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from promocodes.models import PromocodesGroup, Promocode
+from promocodes.services import batch_create_promocodes, delete_unused_promocodes, get_group_promocodes_count
 
 
 class PromocodeActivatedFilter(admin.SimpleListFilter):
@@ -50,6 +51,13 @@ class PromocodeGroupAdmin(admin.ModelAdmin):
         return str(obj.promocode_set.exclude(activated_at=None).count())
 
     def save_model(self, request, obj, form, change):
-        promocodes = [Promocode(group=obj, value=get_random_string(length=8)) for _ in range(obj.count)]
-        super().save_model(request, obj, form, change)
-        Promocode.objects.bulk_create(promocodes, ignore_conflicts=True)
+        promocodes_count = get_group_promocodes_count(obj)
+        with transaction.atomic():
+            if promocodes_count < obj.count:
+                promocodes_to_create_count = obj.count - promocodes_count
+                batch_create_promocodes(obj, promocodes_to_create_count)
+            elif promocodes_count > obj.count:
+                promocodes_to_delete_count = promocodes_count - obj.count
+                delete_unused_promocodes(promocodes_to_delete_count)
+                obj.count = get_group_promocodes_count(obj)
+            super().save_model(request, obj, form, change)
