@@ -5,6 +5,7 @@ from django.db.models import F, Count
 
 from telegram_bot.exceptions import UserNotFoundAPIError
 from telegram_bot.models import User
+from wireguard.exceptions import NoFreeServersAPIError
 from wireguard.models import Server
 from wireguard.services import vpn_server
 
@@ -15,8 +16,8 @@ def get_server_with_fewer_users() -> Server:
         .annotate(users_count=Count('user__server'))
         .filter(users_count__lt=F('max_users_count'))
         .order_by('users_count')).first()
-    if not server:
-        raise Server.DoesNotExist('No free servers')
+    if server is None:
+        raise NoFreeServersAPIError
     return server
 
 
