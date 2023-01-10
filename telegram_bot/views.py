@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from telegram_bot.exceptions import UserAlreadyExistsAPIError
 from telegram_bot.serializers import UserCreateSerializer
-from telegram_bot.services import get_or_create_user, calculate_expiration_time, get_user_by_telegram_id
+from telegram_bot.services import get_or_create_user, calculate_expiration_time, get_user_or_raise_404
 from wireguard.exceptions import VPNServerError, NoFreeServersAPIError, VPNServerAPIError
 from wireguard.models import Server
 from wireguard.services import vpn_server
@@ -42,7 +42,7 @@ def create_user_view(request):
 
 @api_view(['GET'])
 def get_user_view(request, telegram_id: int):
-    user = get_user_by_telegram_id(telegram_id)
+    user = get_user_or_raise_404(telegram_id)
     return Response({
         'telegram_id': user.telegram_id,
         'is_trial_period': user.is_trial_period,

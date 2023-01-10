@@ -1,8 +1,7 @@
 import datetime
 import uuid
 
-from rest_framework.generics import get_object_or_404
-
+from telegram_bot.exceptions import UserNotFoundAPIError
 from telegram_bot.models import User
 from wireguard.models import Server
 
@@ -14,8 +13,11 @@ def get_or_create_user(telegram_id: int, user_uuid: uuid.UUID, server: Server) -
         return User.objects.create(telegram_id=telegram_id, uuid=user_uuid, server=server), True
 
 
-def get_user_by_telegram_id(telegram_id: int) -> User:
-    return get_object_or_404(User, telegram_id=telegram_id)
+def get_user_or_raise_404(telegram_id: int) -> User:
+    user = User.objects.filter(telegram_id=telegram_id).first()
+    if user is None:
+        raise UserNotFoundAPIError
+    return user
 
 
 def calculate_expiration_time(
