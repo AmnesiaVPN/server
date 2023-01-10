@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'wireguard',
     'admin_extensions',
     'donationalerts',
+    'promocodes',
 ]
 
 MIDDLEWARE = [
