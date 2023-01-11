@@ -1,3 +1,4 @@
+from telegram_bot.exceptions import UserNotFoundError
 from telegram_bot.models import User
 
 
@@ -7,5 +8,5 @@ def get_user_or_raise_404(*, telegram_id: int, include_server: bool = False) -> 
         users = users.select_related('server')
     user = users.first()
     if user is None:
-        raise
+        raise UserNotFoundError
     return user

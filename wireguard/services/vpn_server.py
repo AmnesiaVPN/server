@@ -5,7 +5,7 @@ import httpx
 from pydantic import parse_obj_as
 
 from telegram_bot.models import User
-from wireguard.exceptions import VPNServerError, UnauthorizedError
+from wireguard.exceptions import VPNServerError, UnauthorizedError, UserDoesNotExistInVPNServerError
 from wireguard.schemas import User, UserCreated
 
 __all__ = ('VPNServerService',)
@@ -72,6 +72,10 @@ class VPNServerService:
     def get_user_config_file(self, user_uuid: str | UUID) -> str:
         url = f'/api/wireguard/client/{str(user_uuid)}/configuration'
         response = self.client.get(url)
+        if response.status_code == 404:
+            raise UserDoesNotExistInVPNServerError
+        elif response.status_code != 200:
+            raise VPNServerError
         return response.text
 
     def delete_user(self, user_uuid: str | UUID):
