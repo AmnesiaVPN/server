@@ -53,7 +53,7 @@ def validate_user_and_promocode(user: User, promocode: Promocode) -> None:
         promocodes.exceptions.PromocodeWasExpired if promocode was expired.
         promocodes.exceptions.PromocodeWasActivated if promocde was already activated.
     """
-    if user.has_used_promocode:
+    if user.has_activated_promocode:
         raise UserAlreadyActivatedPromocode
     if is_promocode_expired(promocode.group.expire_at):
         raise PromocodeWasExpired
@@ -70,7 +70,7 @@ def activate_subscription_via_promocode(user: User, promocode: Promocode) -> Use
     user.subscribed_at = now
     user.is_subscribed = True
     user.is_trial_period = False
-    user.has_used_promocode = True
+    user.has_activated_promocode = True
     user.save()
     return user
 

@@ -49,4 +49,5 @@ def get_user_view(request, telegram_id: int):
         'subscribed_at': user.subscribed_at,
         'subscription_expire_at': calculate_expiration_time(user.subscribed_at, user.is_trial_period),
         'is_subscribed': user.is_subscribed,
+        'has_activated_promocode': user.has_activated_promocode
     })
