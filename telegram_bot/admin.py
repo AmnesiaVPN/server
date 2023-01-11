@@ -7,11 +7,39 @@ from wireguard.exceptions import VPNServerError
 from wireguard.services.vpn_server import VPNServerService
 
 
+class UserInline(admin.TabularInline):
+    model = User
+    extra = False
+    classes = ('collapse',)
+    can_delete = False
+    show_change_link = True
+    readonly_fields = ('is_subscribed',)
+    ordering = ('-registered_at',)
+
+    @admin.display(boolean=True)
+    def is_subscribed(self, obj):
+        return obj.is_subscribed
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    readonly_fields = ('registered_at',)
+    readonly_fields = ('is_subscribed', 'telegram_id', 'uuid', 'is_trial_period', 'registered_at',)
     search_fields = ('telegram_id',)
     search_help_text = 'User Telegram ID'
+    autocomplete_fields = ('server',)
+
+    @admin.display(boolean=True)
+    def is_subscribed(self, obj):
+        return obj.is_subscribed
 
     def save_model(self, request, obj, form, change):
         old_user: User = self.model.objects.filter(id=obj.id).select_related('server').first()
@@ -41,3 +69,6 @@ class UserAdmin(admin.ModelAdmin):
         except VPNServerError:
             logging.error('Could not delete user in server')
         super().delete_model(request, obj)
+
+    def has_add_permission(self, request):
+        return False
