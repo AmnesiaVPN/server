@@ -1,5 +1,6 @@
 import datetime
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -11,7 +12,6 @@ class User(models.Model):
     uuid = models.UUIDField()
     server = models.ForeignKey(Server, on_delete=models.CASCADE)
     is_trial_period = models.BooleanField(default=True)
-    is_subscribed = models.BooleanField(default=True)
     registered_at = models.DateTimeField(auto_now_add=True)
     subscribed_at = models.DateTimeField(default=timezone.now)
 
@@ -19,6 +19,14 @@ class User(models.Model):
         return f'User: {self.telegram_id}'
 
     @property
+    def subscription_days_count(self) -> int:
+        return settings.TRIAL_PERIOD_DAYS if self.is_trial_period else settings.SUBSCRIPTION_DAYS
+
+    @property
+    def is_subscribed(self) -> bool:
+        now = timezone.now()
+        return now < self.subscription_expires_at
+
+    @property
     def subscription_expires_at(self) -> datetime.datetime:
-        subscription_days_count = 3 if self.is_trial_period else 30
-        return self.subscribed_at + datetime.timedelta(days=subscription_days_count)
+        return self.subscribed_at + datetime.timedelta(days=self.subscription_days_count)
