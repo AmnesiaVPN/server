@@ -3,7 +3,7 @@ from django.db import models
 
 
 class Server(models.Model):
-    name = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    name = models.CharField(max_length=64, unique=True, null=True, blank=True, help_text='Optional')
     url = models.URLField(unique=True, max_length=32)
     password = models.CharField(max_length=255)
     max_users_count = models.PositiveSmallIntegerField(
