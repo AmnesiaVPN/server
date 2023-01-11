@@ -112,3 +112,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 TRIAL_PERIOD_DAYS = 3
 SUBSCRIPTION_DAYS = 30
+
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'core.views.exception_handler',
+}
