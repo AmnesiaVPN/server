@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 from django.utils import timezone
 
@@ -15,3 +17,8 @@ class User(models.Model):
 
     def __str__(self):
         return f'User: {self.telegram_id}'
+
+    @property
+    def subscription_expires_at(self) -> datetime.datetime:
+        subscription_days_count = 3 if self.is_trial_period else 30
+        return self.subscribed_at + datetime.timedelta(days=subscription_days_count)

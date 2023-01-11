@@ -1,52 +1,44 @@
-from rest_framework.decorators import api_view
+from rest_framework import serializers
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from telegram_bot.exceptions import UserAlreadyExistsAPIError
-from telegram_bot.serializers import UserCreateSerializer
-from telegram_bot.services import get_or_create_user, calculate_expiration_time, get_user_by_telegram_id
-from wireguard.exceptions import VPNServerError, NoFreeServersAPIError, VPNServerAPIError
-from wireguard.models import Server
-from wireguard.services import vpn_server
-from wireguard.services.queries import get_server_with_fewer_users
+from telegram_bot.selectors import get_user
+from telegram_bot.services import create_user
+from wireguard.selectors import get_blankest_server
+from wireguard.services.vpn_server import VPNServerService
 
 
-@api_view(['POST'])
-def create_user_view(request):
-    user_create_serializer = UserCreateSerializer(data=request.data)
-    user_create_serializer.is_valid(raise_exception=True)
-    telegram_id = user_create_serializer.data['telegram_id']
-
-    try:
-        server = get_server_with_fewer_users()
-    except Server.DoesNotExist:
-        raise NoFreeServersAPIError
-
-    try:
-        with vpn_server.connected_client(server.url, server.password) as client:
-            user = vpn_server.get_or_create_user(client, str(telegram_id))
-    except VPNServerError:
-        raise VPNServerAPIError
-
-    user, is_created = get_or_create_user(telegram_id, user.uuid, server)
-    if not is_created:
-        raise UserAlreadyExistsAPIError
-
-    return Response({
-        'telegram_id': telegram_id,
-        'is_trial_period': user.is_trial_period,
-        'subscribed_at': user.subscribed_at,
-        'subscription_expire_at': calculate_expiration_time(user.subscribed_at, user.is_trial_period),
-        'is_subscribed': user.is_subscribed,
-    })
+class UserOutputMixin:
+    class OutputSerializer(serializers.Serializer):
+        telegram_id = serializers.IntegerField()
+        is_trial_period = serializers.BooleanField()
+        subscribed_at = serializers.DateTimeField()
+        subscription_expires_at = serializers.DateTimeField()
+        is_subscribed = serializers.BooleanField()
 
 
-@api_view(['GET'])
-def get_user_view(request, telegram_id: int):
-    user = get_user_by_telegram_id(telegram_id)
-    return Response({
-        'telegram_id': user.telegram_id,
-        'is_trial_period': user.is_trial_period,
-        'subscribed_at': user.subscribed_at,
-        'subscription_expire_at': calculate_expiration_time(user.subscribed_at, user.is_trial_period),
-        'is_subscribed': user.is_subscribed,
-    })
+class UserDetailApi(APIView, UserOutputMixin):
+
+    def get(self, request, telegram_id: int):
+        user = get_user(telegram_id=telegram_id)
+        serializer = self.OutputSerializer(user)
+        return Response(serializer.data)
+
+
+class UserCreateApi(APIView, UserOutputMixin):
+    class InputSerializer(serializers.Serializer):
+        telegram_id = serializers.IntegerField()
+
+    def post(self, request):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        telegram_id: int = serializer.data['telegram_id']
+
+        server = get_blankest_server()
+        with VPNServerService(base_url=server.url, password=server.password) as vpn_server:
+            vpn_server.login()
+            user_in_vpn_server, is_created = vpn_server.get_or_create_user(telegram_id)
+
+        user = create_user(telegram_id=telegram_id, user_uuid=user_in_vpn_server.uuid, server=server)
+        serializer = self.OutputSerializer(user)
+        return Response(serializer.data)
