@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_celery_beat',
     'rest_framework',
+    'core',
     'telegram_bot',
     'wireguard',
     'admin_extensions',
