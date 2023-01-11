@@ -1,7 +1,10 @@
+import logging
+
 from django.contrib import admin
 
 from telegram_bot.models import User
-from wireguard.services import vpn_server
+from wireguard.exceptions import VPNServerError
+from wireguard.services.vpn_server import VPNServerService
 
 
 @admin.register(User)
@@ -11,11 +14,30 @@ class UserAdmin(admin.ModelAdmin):
     search_help_text = 'User Telegram ID'
 
     def save_model(self, request, obj, form, change):
-        server = obj.server
-        with vpn_server.connected_client(server.url, server.password) as client:
-            user = vpn_server.get_or_create_user(client, str(obj.telegram_id))
-        obj.uuid = user.uuid
+        old_user: User = self.model.objects.filter(id=obj.id).select_related('server').first()
+        if old_user is not None:
+            try:
+                with VPNServerService(base_url=old_user.server.url,
+                                      password=old_user.server.password) as old_vpn_server:
+                    old_vpn_server.login()
+                    old_vpn_server.delete_user(old_user.uuid)
+            except VPNServerError:
+                logging.error('Could not delete user from old server')
+        try:
+            with VPNServerService(base_url=obj.server.url, password=obj.server.password) as new_vpn_server:
+                new_vpn_server.login()
+                user_in_vpn_server, _ = new_vpn_server.get_or_create_user(obj.telegram_id)
+        except VPNServerError:
+            logging.error('Could not create user in new server')
+        else:
+            obj.uuid = user_in_vpn_server.uuid
         super().save_model(request, obj, form, change)
 
     def delete_model(self, request, obj):
+        try:
+            with VPNServerService(base_url=obj.server.url, password=obj.server.password) as old_vpn_server:
+                old_vpn_server.login()
+                old_vpn_server.delete_user(obj.uuid)
+        except VPNServerError:
+            logging.error('Could not delete user in server')
         super().delete_model(request, obj)
