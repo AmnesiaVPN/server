@@ -19,7 +19,9 @@ class TelegramMessagingService:
 
     def send_message(self, *, chat_id: int, text: str, reply_markup: Collection[Collection[dict]] | None = None):
         url = f'{self.__api_base_url}/sendMessage'
-        request_body = {'chat_id': chat_id, 'text': text, 'parse_mode': 'html', 'reply_markup': reply_markup}
+        request_body = {'chat_id': chat_id, 'text': text, 'parse_mode': 'html'}
+        if reply_markup is not None:
+            request_body['reply_markup'] = reply_markup
         try:
             response = httpx.post(url, json=request_body)
         except httpx.HTTPError:
