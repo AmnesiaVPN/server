@@ -6,11 +6,10 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
-from telegram_bot import telegram
 from telegram_bot.models import User
-from telegram_bot.services import calculate_expiration_time
+from telegram_bot.services import calculate_expiration_time, telegram
 from wireguard.services import vpn_server
-from wireguard.services.queries import group_users_by_server
+from wireguard.services.servers import group_users_by_server
 
 
 @shared_task

@@ -6,7 +6,7 @@ from django.conf import settings
 
 from donationalerts.models import Payment
 from donationalerts.services import DonationAlertsClient
-from telegram_bot import telegram
+from telegram_bot.services import telegram
 from telegram_bot.exceptions import TelegramAPIError
 from telegram_bot.models import User
 

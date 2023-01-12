@@ -3,7 +3,7 @@ import time
 
 from celery import shared_task
 
-from telegram_bot import telegram
+from telegram_bot.services import telegram
 from telegram_bot.exceptions import TelegramAPIError
 from telegram_bot.models import User
 
