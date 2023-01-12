@@ -5,7 +5,7 @@ from celery import shared_task
 from django.conf import settings
 
 from donationalerts.models import Payment
-from donationalerts.services import DonationAlertsClient
+from donationalerts.services import DonationAlertsAPIService
 from telegram_bot.services import telegram
 from telegram_bot.exceptions import TelegramAPIError
 from telegram_bot.models import User
@@ -13,7 +13,7 @@ from telegram_bot.models import User
 
 @shared_task
 def sync_payments_in_donationalerts_and_server():
-    client = DonationAlertsClient(settings.DONATION_ALERTS_ACCESS_TOKEN)
+    client = DonationAlertsAPIService(settings.DONATION_ALERTS_ACCESS_TOKEN)
     donations_from_donationalerts = tuple(itertools.chain.from_iterable(client.iter_all_donations()))
     donation_ids_in_database = set(Payment.objects.values_list('donation_id', flat=True))
     donations_not_in_database = [donation for donation in donations_from_donationalerts

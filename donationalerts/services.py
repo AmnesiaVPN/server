@@ -8,7 +8,7 @@ from donationalerts.schemas import Donation
 from donationalerts.exceptions import DonationalertsError
 
 
-class DonationAlertsClient:
+class DonationAlertsAPIService:
     __slots__ = ('__access_token', '__attempts_on_server_error_count')
 
     def __init__(self, access_token: str, *, attempts_on_server_error_count: int = 10):
