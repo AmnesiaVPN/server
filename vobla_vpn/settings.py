@@ -19,8 +19,6 @@ CELERY_BROKER_URL = env.str('CELERY_BROKER_URL')
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
-TELEGRAM_API_BASE_URL = f'https://api.telegram.org/bot{BOT_TOKEN}'
-
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 PAYMENT_PAGE_URL = env.str('PAYMENT_PAGE_URL')
