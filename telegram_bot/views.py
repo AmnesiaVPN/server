@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from telegram_bot.selectors import get_user
-from telegram_bot.services import create_user
+from telegram_bot.services.users import create_user
 from wireguard.selectors import get_blankest_server
 from wireguard.services.vpn_server import VPNServerService
 
