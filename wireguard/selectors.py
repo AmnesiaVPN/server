@@ -26,7 +26,7 @@ def get_blankest_server() -> Server:
     servers = get_servers_sorted_by_users_count()
     servers_with_blank_slots = filter_servers_with_blank_slots(servers)
 
-    if not servers_with_blank_slots.exists():
+    if servers_with_blank_slots.exists():
         return servers_with_blank_slots.first()
 
     server = servers.first()
