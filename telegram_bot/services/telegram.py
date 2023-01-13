@@ -1,4 +1,4 @@
-from typing import Collection
+import datetime
 
 import httpx
 from django.conf import settings
@@ -9,7 +9,7 @@ __all__ = (
     'TelegramMessagingService',
     'SubscriptionExpiredMessage',
     'SubscriptionExpiresInHoursMessage',
-    'TrialPeriodExpiredMessage',
+    'SubscriptionActivatedMessage',
 )
 
 PAYMENT_PAGE_MARKUP = {
@@ -35,29 +35,17 @@ class TelegramMessage:
         return self.reply_markup
 
 
-class TrialPeriodExpiredMessage(TelegramMessage):
-    reply_markup = PAYMENT_PAGE_MARKUP
-
-    def __init__(self, *, telegram_id: int):
-        self.__telegram_id = telegram_id
-
-    def get_text(self) -> str:
-        return (
-            'Пробный период использования закончился. Вы отключены от VPN. Стоимость продления 299 рублей'
-            '\nВажно❗️'
-            f'\nПри оплате в комментарии укажите имя вашего файла <b>{self.__telegram_id}</b>'
-        )
-
-
 class SubscriptionExpiredMessage(TelegramMessage):
     reply_markup = PAYMENT_PAGE_MARKUP
 
-    def __init__(self, *, telegram_id: int):
+    def __init__(self, *, telegram_id: int, is_trial_period: bool):
         self.__telegram_id = telegram_id
+        self.__is_trial_period = is_trial_period
 
     def get_text(self) -> str:
+        first_line = 'Пробный период использования закончился' if self.__is_trial_period else 'Ваша подписка закончилась'
         return (
-            'Ваша подписка закончилась. Вы отключены от VPN. Стоимость продления 299 рублей'
+            f'{first_line}. Вы отключены от VPN. Стоимость продления 299 рублей'
             '\nВажно❗️'
             f'\nПри оплате в комментарии укажите имя вашего файла <b>{self.__telegram_id}</b>'
         )
@@ -74,6 +62,16 @@ class SubscriptionExpiresInHoursMessage(TelegramMessage):
             f'Ваша подписка заканчивается через {self.__hours_before_expiration} час(ов)'
             f'\nВажно❗️\nПри оплате в комментарии укажите имя вашего файла <b>{self.__telegram_id}</b>'
         )
+
+
+class SubscriptionActivatedMessage(TelegramMessage):
+
+    def __init__(self, *, telegram_id: int, subscription_expires_at: datetime.datetime):
+        self.__telegram_id = telegram_id
+        self.__subscription_expires_at = subscription_expires_at
+
+    def get_text(self) -> str:
+        return f'✅ Ваша подписка продлена до {self.__subscription_expires_at:%H:%M %d.%m.%Y}'
 
 
 class TelegramMessagingService:
