@@ -27,11 +27,11 @@ class PromocodeValidator:
     def is_expired(self) -> bool:
         if self.__promocode.group.expire_at is None:
             return False
-        return timezone.now() < self.__promocode.group.expire_at
+        return timezone.now() > self.__promocode.group.expire_at
 
     @property
     def is_already_activated(self) -> bool:
-        return self.__promocode.activated_by is not None and self.__promocode.activated_at is not None
+        return self.__promocode.activated_by is not None or self.__promocode.activated_at is not None
 
     @property
     def is_user_activated_promocode(self) -> bool:
