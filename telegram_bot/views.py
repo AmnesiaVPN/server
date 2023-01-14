@@ -16,6 +16,7 @@ class UserOutputMixin:
         subscribed_at = serializers.DateTimeField()
         subscription_expires_at = serializers.DateTimeField()
         is_subscribed = serializers.BooleanField()
+        has_activated_promocode = serializers.BooleanField()
 
 
 class UserDetailApi(APIView, UserOutputMixin):
