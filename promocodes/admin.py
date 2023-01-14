@@ -1,9 +1,17 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from import_export import resources
+from import_export.admin import ExportActionMixin
 
 from promocodes.forms import PromocodesGroupCreateForm
 from promocodes.models import PromocodesGroup, Promocode
 from promocodes.services import batch_create_promocodes
+
+
+class PromocodeResource(resources.ModelResource):
+    class Meta:
+        model = Promocode
+        fields = ('group__name', 'value', 'activated_by__telegram_id', 'activated_at')
 
 
 class PromocodeActivatedFilter(admin.SimpleListFilter):
@@ -25,7 +33,8 @@ class PromocodeActivatedFilter(admin.SimpleListFilter):
 
 
 @admin.register(Promocode)
-class PromocodeAdmin(admin.ModelAdmin):
+class PromocodeAdmin(ExportActionMixin, admin.ModelAdmin):
+    resource_classes = (PromocodeResource,)
     list_filter = ('group', PromocodeActivatedFilter)
     search_fields = ('value',)
     search_help_text = 'Promocode'
