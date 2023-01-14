@@ -1,9 +1,9 @@
 from django.contrib import admin
-from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
+from promocodes.forms import PromocodesGroupCreateForm
 from promocodes.models import PromocodesGroup, Promocode
-from promocodes.services import batch_create_promocodes, delete_unused_promocodes, get_group_promocodes_count
+from promocodes.services import batch_create_promocodes
 
 
 class PromocodeActivatedFilter(admin.SimpleListFilter):
@@ -38,26 +38,31 @@ class PromocodeAdmin(admin.ModelAdmin):
 class PromocodeInline(admin.TabularInline):
     model = Promocode
     extra = False
+    show_change_link = True
+    readonly_fields = ('value', 'activated_by', 'activated_at')
+    can_delete = False
+    classes = ('collapse',)
 
 
 @admin.register(PromocodesGroup)
 class PromocodeGroupAdmin(admin.ModelAdmin):
     inlines = [PromocodeInline]
-    readonly_fields = ('total_activated',)
-    list_display = ('name', 'total_activated', 'count', 'expire_at')
+    list_display = ('name', 'total_activated', 'expire_at', 'total_count')
+    form = PromocodesGroupCreateForm
 
     @admin.display()
     def total_activated(self, obj):
         return str(obj.promocode_set.exclude(activated_at=None).count())
 
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = ['total_activated']
+        if obj is not None:
+            readonly_fields.append('total_count')
+        return super().get_readonly_fields(request, obj) + tuple(readonly_fields)
+
     def save_model(self, request, obj, form, change):
-        promocodes_count = get_group_promocodes_count(obj)
-        with transaction.atomic():
-            if promocodes_count < obj.count:
-                promocodes_to_create_count = obj.count - promocodes_count
-                batch_create_promocodes(obj, promocodes_to_create_count)
-            elif promocodes_count > obj.count:
-                promocodes_to_delete_count = promocodes_count - obj.count
-                delete_unused_promocodes(promocodes_to_delete_count)
-                obj.count = get_group_promocodes_count(obj)
-            super().save_model(request, obj, form, change)
+        init_promocodes = not obj.pk
+        super().save_model(request, obj, form, change)
+        if init_promocodes:
+            count = form.cleaned_data['total_count']
+            batch_create_promocodes(group=obj, count=count)

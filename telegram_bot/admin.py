@@ -38,7 +38,14 @@ class UserInline(admin.TabularInline):
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    readonly_fields = ('is_subscribed', 'telegram_id', 'uuid', 'is_trial_period', 'registered_at',)
+    readonly_fields = (
+        'is_subscribed',
+        'has_activated_promocode',
+        'telegram_id',
+        'uuid',
+        'is_trial_period',
+        'registered_at',
+    )
     search_fields = ('telegram_id',)
     search_help_text = 'User Telegram ID'
     autocomplete_fields = ('server',)
