@@ -10,6 +10,8 @@ __all__ = (
     'SubscriptionExpiredMessage',
     'SubscriptionExpiresInHoursMessage',
     'SubscriptionActivatedMessage',
+    'PaymentReceivedMessage',
+    'CustomMessage',
 )
 
 PAYMENT_PAGE_MARKUP = {
@@ -33,6 +35,12 @@ class TelegramMessage:
 
     def get_reply_markup(self) -> dict:
         return self.reply_markup
+
+
+class CustomMessage(TelegramMessage):
+
+    def __init__(self, *, text: str):
+        self.text = text
 
 
 class SubscriptionExpiredMessage(TelegramMessage):
@@ -62,6 +70,10 @@ class SubscriptionExpiresInHoursMessage(TelegramMessage):
             f'Ваша подписка заканчивается через {self.__hours_before_expiration} час(ов)'
             f'\nВажно❗️\nПри оплате в комментарии укажите имя вашего файла <b>{self.__telegram_id}</b>'
         )
+
+
+class PaymentReceivedMessage(TelegramMessage):
+    text = '✅ Мы получили вашу оплату. Подписка будет автоматически продлена после окончания действующей'
 
 
 class SubscriptionActivatedMessage(TelegramMessage):

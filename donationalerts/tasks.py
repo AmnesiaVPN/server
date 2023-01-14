@@ -8,7 +8,7 @@ from donationalerts.services.donationalerts import DonationAlertsAPIService, fil
 from donationalerts.services.payments import batch_create_payments
 from telegram_bot.exceptions import TelegramAPIError
 from telegram_bot.selectors import get_all_user_ids_and_telegram_ids
-from telegram_bot.services.telegram import TelegramMessagingService
+from telegram_bot.services.telegram import TelegramMessagingService, PaymentReceivedMessage
 
 
 @shared_task
@@ -31,9 +31,9 @@ def sync_payments_in_donationalerts_and_server():
     )
     batch_create_payments(validated_payments=validated_payments, telegram_id_to_user_id=telegram_id_to_user_id)
 
-    text = '✅ Мы получили вашу оплату. Подписка будет автоматически продлена после окончания действующей'
+    message = PaymentReceivedMessage()
     for validated_payment in validated_payments:
         try:
-            telegram_messaging_service.send_message(chat_id=validated_payment.telegram_id, text=text)
+            telegram_messaging_service.send_message(chat_id=validated_payment.telegram_id, message=message)
         except TelegramAPIError:
             logging.warning(f'Could not send message')
