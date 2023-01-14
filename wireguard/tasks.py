@@ -1,98 +1,62 @@
 import datetime
-import logging
 
 from celery import shared_task
 from django.conf import settings
-from django.db import transaction
-from django.db.models import Q
 
-from telegram_bot.models import User
-from telegram_bot.services import calculate_expiration_time, telegram
-from wireguard.services import vpn_server
-from wireguard.services.servers import group_users_by_server
+from donationalerts.exceptions import UserHasNoUnusedPaymentError
+from donationalerts.selectors import get_oldest_unused_payment
+from telegram_bot.selectors import get_user
+from telegram_bot.services.scheduled_tasks import remove_previously_scheduled_tasks, create_new_scheduled_tasks
+from telegram_bot.services.telegram import TelegramMessagingService, SubscriptionExpiresInHoursMessage
+from telegram_bot.services.users import on_subscription_activated, on_subscription_deactivated
 
 
 @shared_task
-def subscription_control():
-    markup = telegram.get_payment_page_markup()
-    now = datetime.datetime.utcnow()
-    trial_period_should_have_started_at = now - datetime.timedelta(days=settings.TRIAL_PERIOD_DAYS)
-    subscription_should_have_started_at = now - datetime.timedelta(days=settings.SUBSCRIPTION_DAYS)
-    expiring_users = (
-        User.objects
-        .select_related('server')
-        .prefetch_related('payment_set')
-        .filter(
-            Q(is_trial_period=True, subscribed_at__lte=trial_period_should_have_started_at)
-            | Q(is_trial_period=False, subscribed_at__lte=subscription_should_have_started_at)
-        )
+def on_subscription_expired(telegram_id: int):
+    telegram_messaging_service = TelegramMessagingService(settings.BOT_TOKEN)
+    user = get_user(telegram_id=telegram_id, include_server=True)
+    try:
+        payment = get_oldest_unused_payment(user=user.id)
+    except UserHasNoUnusedPaymentError:
+        on_subscription_deactivated(telegram_messaging_service=telegram_messaging_service, user=user)
+    else:
+        on_subscription_activated(telegram_messaging_service=telegram_messaging_service, user=user, payment=payment)
+        on_user_subscription_date_updated.delay(telegram_id=telegram_id)
+
+
+@shared_task
+def notify_before_subscription_expires(telegram_id: int, hours_before_expiration: int):
+    message = SubscriptionExpiresInHoursMessage(
+        telegram_id=telegram_id,
+        hours_before_expiration=hours_before_expiration,
     )
-    server_to_users = group_users_by_server(expiring_users)
-    for server, users in server_to_users.items():
-        with vpn_server.connected_client(server.url, server.password) as vpn_client:
-            for user in users:
-                unused_payment = user.payment_set.filter(is_used=False).first()
-                if unused_payment is None:
-                    if not user.is_subscribed:
-                        continue
-                    logging.debug(f'Used {user.telegram_id} has unused payment')
-                    if user.is_trial_period:
-                        text = ('Пробный период использования закончился.'
-                                ' Продлите подписку чтобы продолжить пользоваться.'
-                                ' Стоимость продления 299 рублей'
-                                '\nВажно❗️'
-                                f'\nПри оплате в комментарии укажите имя вашего файла <b>{user.telegram_id}</b>')
-                    else:
-                        text = ('Ваша подписка закончилась.'
-                                ' Вы отключены от VPN. '
-                                'Стоимость продления 299 рублей'
-                                '\nВажно❗️'
-                                f'\nПри оплате в комментарии укажите имя вашего файла <b>{user.telegram_id}</b>')
-                    with transaction.atomic():
-                        vpn_server.disable_user(vpn_client, user.uuid)
-                        user.is_subscribed = False
-                        user.is_trial_period = False
-                        user.save()
-                    telegram.send_message(user.telegram_id, text, markup)
-                else:
-                    logging.debug(f'Used {user.telegram_id} has not unused payment')
-                    with transaction.atomic():
-                        vpn_server.enable_user(vpn_client, user.uuid)
-                        unused_payment.is_used = True
-                        user.is_subscribed = True
-                        user.is_trial_period = False
-                        user.subscribed_at = datetime.datetime.utcnow()
-                        unused_payment.save()
-                        user.save()
-                    expire_at = calculate_expiration_time(user.subscribed_at, is_trial_period=False)
-                    text = f'✅ Ваша подписка продлена до {expire_at:%H:%M %d.%m.%Y}'
-                    telegram.send_message(user.telegram_id, text)
+    telegram_messaging_service = TelegramMessagingService(settings.BOT_TOKEN)
+    telegram_messaging_service.send_message(chat_id=telegram_id, message=message)
 
 
 @shared_task
-def expiring_users_notification():
-    markup = telegram.get_payment_page_markup()
-    now = datetime.datetime.utcnow()
-    users = User.objects.filter(is_subscribed=True).values('telegram_id', 'subscribed_at', 'is_trial_period')
-    strategies = [
-        {
-            'start': 60 * 60 * 24 - 25,
-            'end': 60 * 60 * 24 + 25,
-            'text': 'Ваша подписка заканчивается через 24 часа',
-        },
-        {
-            'start': 60 * 60 - 25,
-            'end': 60 * 60 + 25,
-            'text': 'Ваша подписка заканчивается через 1 час',
-        },
-    ]
-    for user in users:
-        expire_at = calculate_expiration_time(user['subscribed_at'], user['is_trial_period'])
-        time_before_expiration = (expire_at - now).total_seconds()
-        logging.debug(time_before_expiration)
-        for strategy in strategies:
-            if strategy['start'] <= time_before_expiration <= strategy['end']:
-                text = (strategy['text'] +
-                        f'\nВажно❗️\nПри оплате в комментарии укажите имя вашего файла <b>{user["telegram_id"]}</b>')
-                telegram.send_message(user['telegram_id'], text, markup)
-                break
+def on_user_subscription_date_updated(*, telegram_id: int):
+    user = get_user(telegram_id=telegram_id)
+    remove_previously_scheduled_tasks(user=user.id)
+
+    task_notify_before_1_hour = notify_before_subscription_expires.apply_async(
+        kwargs={'telegram_id': user.telegram_id, 'hours_before_expiration': 1},
+        eta=user.subscription_expires_at - datetime.timedelta(hours=1),
+    )
+    task_notify_before_24_hours = notify_before_subscription_expires.apply_async(
+        kwargs={'telegram_id': user.telegram_id, 'hours_before_expiration': 24},
+        eta=user.subscription_expires_at - datetime.timedelta(days=1),
+    )
+    task_handle_user_subscription = on_subscription_expired.apply_async(
+        kwargs={'telegram_id': user.telegram_id},
+        eta=user.subscription_expires_at,
+    )
+
+    create_new_scheduled_tasks(
+        user=user.id,
+        tasks=(
+            task_notify_before_1_hour,
+            task_notify_before_24_hours,
+            task_handle_user_subscription,
+        ),
+    )
