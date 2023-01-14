@@ -1,3 +1,5 @@
+import string
+
 from django.db import transaction
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -59,5 +61,7 @@ def activate_subscription_via_promocode(user: User, promocode: Promocode):
 
 
 def batch_create_promocodes(*, group: PromocodesGroup, count: int):
-    promocodes = [Promocode(group=group, value=get_random_string(length=8)) for _ in range(count)]
+    allowed_chars = string.ascii_uppercase + string.digits
+    promocodes = [Promocode(group=group, value=get_random_string(length=8, allowed_chars=allowed_chars))
+                  for _ in range(count)]
     Promocode.objects.bulk_create(promocodes, ignore_conflicts=True)

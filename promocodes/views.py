@@ -17,7 +17,7 @@ class PromocodeActivateApi(APIView):
     def post(self, request, telegram_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        promocode_value: str = serializer.data['promocode']
+        promocode_value: str = serializer.data['promocode'].upper()
 
         promocode = get_promocode(value=promocode_value, include_group=True)
         user = get_user(telegram_id=telegram_id)
