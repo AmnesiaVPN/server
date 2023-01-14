@@ -66,8 +66,7 @@ class SubscriptionExpiresInHoursMessage(TelegramMessage):
 
 class SubscriptionActivatedMessage(TelegramMessage):
 
-    def __init__(self, *, telegram_id: int, subscription_expires_at: datetime.datetime):
-        self.__telegram_id = telegram_id
+    def __init__(self, *, subscription_expires_at: datetime.datetime):
         self.__subscription_expires_at = subscription_expires_at
 
     def get_text(self) -> str:
