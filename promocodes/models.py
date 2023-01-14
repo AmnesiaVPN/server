@@ -20,7 +20,7 @@ class Promocode(models.Model):
     value = models.CharField(max_length=8, unique=True)
     group = models.ForeignKey(PromocodesGroup, on_delete=models.CASCADE)
     activated_at = models.DateTimeField(null=True, blank=True)
-    activated_by = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True)
+    activated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return self.value
