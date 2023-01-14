@@ -23,6 +23,7 @@ def filter_servers_with_blank_slots(servers: QuerySet[Server]) -> QuerySet[Serve
 
 
 def get_blankest_server() -> Server:
+    # TODO учитывать количество АКТИВНЫХ юзеров при сортировке, то есть юзеров с активной подпиской
     servers = get_servers_sorted_by_users_count()
     servers_with_blank_slots = filter_servers_with_blank_slots(servers)
 
