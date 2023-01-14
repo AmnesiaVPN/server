@@ -1,23 +1,30 @@
-from rest_framework.decorators import api_view
+from rest_framework import serializers
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from promocodes.serializers import PromocodeSerializer
-from promocodes.services import (
-    validate_user_and_promocode,
-    get_promocode_or_raise_404,
-    activate_subscription_via_promocode,
-)
-from telegram_bot.services import get_user_or_raise_404, calculate_expiration_time
+from promocodes.selectors import get_promocode
+from promocodes.services import PromocodeValidator, activate_subscription_via_promocode
+from telegram_bot.selectors import get_user
 
 
-@api_view(['POST'])
-def activate_promocode_view(request, telegram_id: int):
-    serializer = PromocodeSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    promocode_value: str = serializer.data['promocode']
-    promocode = get_promocode_or_raise_404(promocode_value)
-    user = get_user_or_raise_404(telegram_id)
-    validate_user_and_promocode(user, promocode)
-    user = activate_subscription_via_promocode(user, promocode)
-    expire_at = calculate_expiration_time(user.subscribed_at, is_trial_period=False)
-    return Response({'expire_at': expire_at})
+class PromocodeActivateApi(APIView):
+    class InputSerializer(serializers.Serializer):
+        promocode = serializers.CharField(min_length=8, max_length=8)
+
+    class OutputSerializer(serializers.Serializer):
+        subscription_expires_at = serializers.DateTimeField()
+
+    def post(self, request, telegram_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        promocode_value: str = serializer.data['promocode']
+
+        promocode = get_promocode(value=promocode_value, include_group=True)
+        user = get_user(telegram_id=telegram_id)
+
+        promocode_validator = PromocodeValidator(user=user, promocode=promocode)
+        promocode_validator.validate()
+        activate_subscription_via_promocode(user=user, promocode=promocode)
+
+        serializer = self.OutputSerializer(user)
+        return Response(serializer.data)
