@@ -1,7 +1,51 @@
-# Vobla VPN Server
+
+# Amnesia VPN server
+
+Backend for Amnesia VPN server.
 
 
-## Setup WireGuard Easy Server
+
+## API Reference
+
+#### Create user
+
+```http
+  POST /api/users/
+```
+
+#### Get user by Telegram ID
+
+```http
+  GET /api/users/${telegram_id}/
+```
+
+| Parameter          | Type     | Description                           |
+| :----------------- | :------- | :------------------------------------ |
+| `telegram_id`      | `number` | **Required**. Telegram ID of the user |
+
+#### Activate user's promocode
+
+```http
+  POST /api/users/${telegram_id}/promocodes/
+```
+
+| Parameter          | Type     | Description                           |
+| :----------------- | :------- | :------------------------------------ |
+| `telegram_id`      | `number` | **Required**. Telegram ID of the user |
+
+#### Get user's config
+
+```http
+  GET /api/users/${telegram_id}/config/
+```
+
+| Parameter          | Type     | Description                           |
+| :----------------- | :------- | :------------------------------------ |
+| `telegram_id`      | `number` | **Required**. Telegram ID of the user |
+
+## Installation
+
+Setup WireGuard Easy Server
 
 GitHub Source: https://github.com/WeeJeWel/wg-easy
 
@@ -21,6 +65,27 @@ docker run -d \
   weejewel/wg-easy
 ```
 
-> Replace YOUR_SERVER_IP with your WAN IP, or a Dynamic DNS hostname.
->
-> Replace YOUR_ADMIN_PASSWORD with a password to log in on the Web UI.
+## Environment Variables
+
+To run this project, you will need to add the following environment variables to your .env file
+
+`SECRET_KEY` - any string as your secret key.
+
+`DEBUG` - debug mode (true, false).
+
+`BOT_TOKEN` - token of your Telegram bot which will send notifications.
+
+`DONATION_ALERTS_ACCESS_TOKEN` - token for donationalerts API.
+
+`CELERY_BROKER_URL` - celery broker (redis recommended).
+
+`DATABASE_HOST`
+`DATABASE_PORT`
+`DATABASE_NAME`
+`DATABASE_USER`
+`DATABASE_PASSWORD` - database settings.
+
+`ALLOWED_HOSTS` - allowed hosts.
+
+`PAYMENT_PAGE_URL` - page where users can buy subscription.
+
