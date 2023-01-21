@@ -40,9 +40,6 @@ class PromocodeAdmin(ExportActionMixin, admin.ModelAdmin):
     search_help_text = 'Promocode'
     list_display = ('value', 'group', 'activated_at',)
 
-    def has_add_permission(self, request):
-        return False
-
 
 class PromocodeInline(admin.TabularInline):
     model = Promocode
