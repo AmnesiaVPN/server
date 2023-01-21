@@ -37,6 +37,7 @@ def get_previously_scheduled_tasks(*, user: User | int) -> QuerySet[ScheduledTas
 def get_subscription_expired_users() -> QuerySet[User]:
     return (
         User.objects
+        .select_related('server')
         .annotate(
             user_subscription_expires_at=F('subscribed_at') + datetime.timedelta(days=settings.SUBSCRIPTION_DAYS),
             user_trial_period_expires_at=F('subscribed_at') + datetime.timedelta(days=settings.TRIAL_PERIOD_DAYS),
