@@ -1,11 +1,19 @@
 import logging
 
 from django.contrib import admin
+from django.db.models import QuerySet
 
 from telegram_bot.models import User, ScheduledTask
 from wireguard.exceptions import VPNServerError
 from wireguard.services.vpn_server import VPNServerService
 from wireguard.tasks import on_user_subscription_date_updated
+
+
+@admin.action(description='Update tasks')
+def update_tasks(modeladmin: 'UserAdmin', request, queryset: QuerySet[User]):
+    for telegram_id in queryset.values_list('telegram_id', flat=True):
+        on_user_subscription_date_updated.delay(telegram_id=telegram_id)
+    modeladmin.message_user(request, 'Tasks updated')
 
 
 @admin.register(ScheduledTask)
@@ -49,6 +57,7 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ('telegram_id',)
     search_help_text = 'User Telegram ID'
     autocomplete_fields = ('server',)
+    actions = (update_tasks,)
 
     @admin.display(boolean=True)
     def is_subscribed(self, obj):
