@@ -82,7 +82,8 @@ class SubscriptionActivatedMessage(TelegramMessage):
         self.__subscription_expires_at = subscription_expires_at
 
     def get_text(self) -> str:
-        return f'✅ Ваша подписка продлена до {self.__subscription_expires_at:%H:%M %d.%m.%Y}'
+        subscription_expires_at = self.__subscription_expires_at + datetime.timedelta(hours=3)
+        return f'✅ Ваша подписка продлена до {subscription_expires_at:%H:%M %d.%m.%Y}'
 
 
 class TelegramMessagingService:
