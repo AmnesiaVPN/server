@@ -13,6 +13,7 @@ __all__ = (
     'get_all_user_ids_and_telegram_ids',
     'get_previously_scheduled_tasks',
     'get_subscription_expired_users',
+    'get_subscription_expired_users_with_payments',
 )
 
 
@@ -47,3 +48,8 @@ def get_subscription_expired_users() -> QuerySet[User]:
             | Q(user_trial_period_expires_at__lte=Now(), is_trial_period=True)
         )
     )
+
+
+def get_subscription_expired_users_with_payments() -> QuerySet[User]:
+    users = get_subscription_expired_users()
+    return users.filter(payment__is_used=False).prefetch_related('payment_set')
