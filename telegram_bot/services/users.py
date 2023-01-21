@@ -1,16 +1,18 @@
+import logging
 from uuid import UUID
 
 from django.db import IntegrityError
 
 from donationalerts.models import Payment
 from donationalerts.services.payments import activate_subscription, deactivate_subscription
-from telegram_bot.exceptions import UserAlreadyExistsError
+from telegram_bot.exceptions import UserAlreadyExistsError, TelegramAPIError
 from telegram_bot.models import User
 from telegram_bot.services.telegram import (
     TelegramMessagingService,
     SubscriptionActivatedMessage,
     SubscriptionExpiredMessage,
 )
+from wireguard.exceptions import VPNServerError
 from wireguard.models import Server
 
 __all__ = (
@@ -33,9 +35,15 @@ def on_subscription_activated(
         user: User,
         payment: Payment,
 ):
-    activate_subscription(user=user, payment=payment, server=user.server)
+    try:
+        activate_subscription(user=user, payment=payment, server=user.server)
+    except VPNServerError:
+        logging.error(f'Could not activate user {user.telegram_id} subscription')
     message = SubscriptionActivatedMessage(subscription_expires_at=user.subscription_expires_at)
-    telegram_messaging_service.send_message(chat_id=user.telegram_id, message=message)
+    try:
+        telegram_messaging_service.send_message(chat_id=user.telegram_id, message=message)
+    except TelegramAPIError:
+        logging.error(f'Could not send subscription activation message to user {user.telegram_id}')
 
 
 def on_subscription_deactivated(
@@ -43,6 +51,12 @@ def on_subscription_deactivated(
         telegram_messaging_service: TelegramMessagingService,
         user: User,
 ):
-    deactivate_subscription(user=user, server=user.server)
+    try:
+        deactivate_subscription(user=user, server=user.server)
+    except VPNServerError:
+        logging.error(f'Could not deactivate user {user.telegram_id} subscription')
     message = SubscriptionExpiredMessage(telegram_id=user.telegram_id, is_trial_period=user.is_trial_period)
-    telegram_messaging_service.send_message(chat_id=user.telegram_id, message=message)
+    try:
+        telegram_messaging_service.send_message(chat_id=user.telegram_id, message=message)
+    except TelegramAPIError:
+        logging.error(f'Could not send subscription deactivation message to user {user.telegram_id}')
