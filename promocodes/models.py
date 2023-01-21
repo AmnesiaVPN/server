@@ -1,3 +1,4 @@
+from django.core.validators import MinLengthValidator
 from django.db import models
 
 from telegram_bot.models import User
@@ -17,7 +18,7 @@ class PromocodesGroup(models.Model):
 
 
 class Promocode(models.Model):
-    value = models.CharField(max_length=8, unique=True)
+    value = models.CharField(max_length=8, unique=True, validators=(MinLengthValidator(8),))
     group = models.ForeignKey(PromocodesGroup, on_delete=models.CASCADE)
     activated_at = models.DateTimeField(null=True, blank=True)
     activated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
