@@ -15,3 +15,6 @@ class Server(models.Model):
 
     def __str__(self):
         return self.name or self.url
+
+    def is_changed(self, new_server: 'Server') -> bool:
+        return self.url != new_server.url

@@ -63,27 +63,27 @@ class UserAdmin(admin.ModelAdmin):
     def is_subscribed(self, obj):
         return obj.is_subscribed
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj: User, form, change):
         old_user: User = self.model.objects.filter(id=obj.id).select_related('server').first()
-        if old_user is not None and obj.subscribed_at != old_user.subscribed_at:
-            on_user_subscription_date_updated.delay(telegram_id=obj.telegram_id)
-        if obj.server.url != old_user.server.url:
-            if old_user is not None:
-                try:
-                    with VPNServerService(base_url=old_user.server.url,
-                                          password=old_user.server.password) as old_vpn_server:
-                        old_vpn_server.login()
-                        old_vpn_server.delete_user(old_user.uuid)
-                except VPNServerError:
-                    logging.error('Could not delete user from old server')
+        is_server_changed = obj.server.is_changed(old_user.server)
+        if is_server_changed:
             try:
-                with VPNServerService(base_url=obj.server.url, password=obj.server.password) as new_vpn_server:
-                    new_vpn_server.login()
-                    user_in_vpn_server, _ = new_vpn_server.get_or_create_user(obj.telegram_id)
+                with VPNServerService(base_url=old_user.server.url,
+                                      password=old_user.server.password) as old_vpn_server:
+                    old_vpn_server.login()
+                    old_vpn_server.delete_user(old_user.uuid)
             except VPNServerError:
-                logging.error('Could not create user in new server')
+                logging.error('Could not delete user from old server')
+        with VPNServerService(base_url=obj.server.url, password=obj.server.password) as new_vpn_server:
+            new_vpn_server.login()
+            user_in_vpn_server, _ = new_vpn_server.get_or_create_user(obj.telegram_id)
+            obj.uuid = user_in_vpn_server.uuid
+            if obj.is_subscribed:
+                new_vpn_server.enable_user(obj.uuid)
+                if obj.subscribed_at != old_user.subscribed_at:
+                    on_user_subscription_date_updated.delay(telegram_id=obj.telegram_id)
             else:
-                obj.uuid = user_in_vpn_server.uuid
+                new_vpn_server.disable_user(obj.uuid)
         super().save_model(request, obj, form, change)
 
     def delete_model(self, request, obj):
