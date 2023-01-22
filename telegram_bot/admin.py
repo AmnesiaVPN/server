@@ -47,6 +47,7 @@ class UserInline(admin.TabularInline):
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     readonly_fields = (
+        'subscription_expires_at',
         'is_subscribed',
         'has_activated_promocode',
         'telegram_id',
