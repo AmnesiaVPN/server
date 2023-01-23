@@ -31,8 +31,3 @@ class User(models.Model):
     @property
     def subscription_expires_at(self) -> datetime.datetime:
         return self.subscribed_at + datetime.timedelta(days=self.subscription_days_count)
-
-
-class ScheduledTask(models.Model):
-    uuid = models.UUIDField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)

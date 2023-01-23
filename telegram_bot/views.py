@@ -6,7 +6,6 @@ from telegram_bot.selectors import get_user
 from telegram_bot.services.users import create_user
 from wireguard.selectors import get_blankest_server
 from wireguard.services.vpn_server import VPNServerService
-from wireguard.tasks import on_user_subscription_date_updated
 
 
 class UserOutputMixin:
@@ -42,7 +41,6 @@ class UserCreateApi(APIView, UserOutputMixin):
             user_in_vpn_server, is_created = vpn_server.get_or_create_user(telegram_id)
 
         user = create_user(telegram_id=telegram_id, user_uuid=user_in_vpn_server.uuid, server=server)
-        on_user_subscription_date_updated.delay(telegram_id=user.telegram_id)
 
         serializer = self.OutputSerializer(user)
         return Response(serializer.data)

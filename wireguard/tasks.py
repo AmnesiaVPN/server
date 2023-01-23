@@ -1,73 +1,54 @@
-import datetime
 import logging
 
 from celery import shared_task
 from django.conf import settings
+from django.utils import timezone
 
 from donationalerts.exceptions import UserHasNoUnusedPaymentError
 from donationalerts.selectors import get_oldest_unused_payment
-from telegram_bot.selectors import get_user, get_subscription_expired_users_with_payments
-from telegram_bot.services.scheduled_tasks import remove_previously_scheduled_tasks, create_new_scheduled_tasks
+from telegram_bot.exceptions import TelegramAPIError
+from telegram_bot.selectors import get_subscribed_users, get_subscription_expired_users_with_payments
 from telegram_bot.services.telegram import TelegramMessagingService, SubscriptionExpiresInHoursMessage
 from telegram_bot.services.users import on_subscription_activated, on_subscription_deactivated
 
 
 @shared_task
-def subscription_control_task():
+def activate_expired_subscription_by_payment_task():
     telegram_messaging_service = TelegramMessagingService(settings.BOT_TOKEN)
     users = get_subscription_expired_users_with_payments()
     for user in users:
         payment = user.payment_set.first()
         on_subscription_activated(telegram_messaging_service=telegram_messaging_service, user=user, payment=payment)
-        on_user_subscription_date_updated.delay(telegram_id=user.telegram_id)
         logging.info(f'User {user.telegram_id} subscription was activated')
 
 
 @shared_task
-def on_subscription_expired(telegram_id: int):
+def subscription_expiration_control_task():
     telegram_messaging_service = TelegramMessagingService(settings.BOT_TOKEN)
-    user = get_user(telegram_id=telegram_id)
-    try:
-        get_oldest_unused_payment(user=user)
-    except UserHasNoUnusedPaymentError:
-        on_subscription_deactivated(telegram_messaging_service=telegram_messaging_service, user=user)
-
-
-@shared_task
-def notify_before_subscription_expires(telegram_id: int, hours_before_expiration: int):
-    message = SubscriptionExpiresInHoursMessage(
-        telegram_id=telegram_id,
-        hours_before_expiration=hours_before_expiration,
-    )
-    telegram_messaging_service = TelegramMessagingService(settings.BOT_TOKEN)
-    telegram_messaging_service.send_message(chat_id=telegram_id, message=message)
-
-
-@shared_task
-def on_user_subscription_date_updated(*, telegram_id: int):
-    user = get_user(telegram_id=telegram_id)
-    remove_previously_scheduled_tasks(user=user.id)
-
-    task_notify_before_1_hour = notify_before_subscription_expires.apply_async(
-        kwargs={'telegram_id': user.telegram_id, 'hours_before_expiration': 1},
-        eta=user.subscription_expires_at - datetime.timedelta(hours=1),
-        expires=user.subscription_expires_at - datetime.timedelta(hours=1, minutes=-5)
-    )
-    task_notify_before_24_hours = notify_before_subscription_expires.apply_async(
-        kwargs={'telegram_id': user.telegram_id, 'hours_before_expiration': 24},
-        eta=user.subscription_expires_at - datetime.timedelta(days=1),
-        expires=user.subscription_expires_at - datetime.timedelta(days=1, minutes=-5)
-    )
-    task_handle_user_subscription = on_subscription_expired.apply_async(
-        kwargs={'telegram_id': user.telegram_id},
-        eta=user.subscription_expires_at,
-    )
-
-    create_new_scheduled_tasks(
-        user=user.id,
-        tasks=(
-            task_notify_before_1_hour,
-            task_notify_before_24_hours,
-            task_handle_user_subscription,
-        ),
-    )
+    now = timezone.now()
+    users = get_subscribed_users()
+    for user in users:
+        seconds_before_expiration = (user.subscription_expires_at - now).total_seconds()
+        logging.debug(f'User ID{user.telegram_id} {seconds_before_expiration} seconds before expiration')
+        hours_before_expiration = int(seconds_before_expiration // 3600)
+        is_last_minute_of_hour = seconds_before_expiration % 3600 <= 60
+        if not is_last_minute_of_hour or hours_before_expiration not in (0, 1, 24):
+            continue
+        try:
+            payment = get_oldest_unused_payment(user=user)
+        except UserHasNoUnusedPaymentError:
+            if hours_before_expiration == 0:
+                on_subscription_deactivated(telegram_messaging_service=telegram_messaging_service, user=user)
+            else:
+                message = SubscriptionExpiresInHoursMessage(
+                    telegram_id=user.telegram_id,
+                    hours_before_expiration=hours_before_expiration,
+                )
+                try:
+                    telegram_messaging_service.send_message(chat_id=user.telegram_id, message=message)
+                except TelegramAPIError:
+                    logging.error(f'Could not send message to user {user.telegram_id}')
+        else:
+            if hours_before_expiration == 0:
+                on_subscription_activated(telegram_messaging_service=telegram_messaging_service, user=user,
+                                          payment=payment)
