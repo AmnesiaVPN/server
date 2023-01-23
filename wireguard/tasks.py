@@ -41,23 +41,3 @@ def notify_before_subscription_expires(telegram_id: int, hours_before_expiration
     )
     telegram_messaging_service = TelegramMessagingService(settings.BOT_TOKEN)
     telegram_messaging_service.send_message(chat_id=telegram_id, message=message)
-
-
-@shared_task
-def on_user_subscription_date_updated(*, telegram_id: int):
-    user = get_user(telegram_id=telegram_id)
-
-    task_notify_before_1_hour = notify_before_subscription_expires.apply_async(
-        kwargs={'telegram_id': user.telegram_id, 'hours_before_expiration': 1},
-        eta=user.subscription_expires_at - datetime.timedelta(hours=1),
-        expires=user.subscription_expires_at - datetime.timedelta(hours=1, minutes=-5)
-    )
-    task_notify_before_24_hours = notify_before_subscription_expires.apply_async(
-        kwargs={'telegram_id': user.telegram_id, 'hours_before_expiration': 24},
-        eta=user.subscription_expires_at - datetime.timedelta(days=1),
-        expires=user.subscription_expires_at - datetime.timedelta(days=1, minutes=-5)
-    )
-    task_handle_user_subscription = on_subscription_expired.apply_async(
-        kwargs={'telegram_id': user.telegram_id},
-        eta=user.subscription_expires_at,
-    )
