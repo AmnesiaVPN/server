@@ -3,7 +3,7 @@ import logging
 from django.contrib import admin
 from django.db.models import QuerySet
 
-from telegram_bot.models import User, ScheduledTask
+from telegram_bot.models import User
 from wireguard.exceptions import VPNServerError
 from wireguard.services.vpn_server import VPNServerService
 
@@ -11,11 +11,6 @@ from wireguard.services.vpn_server import VPNServerService
 @admin.action(description='Update tasks')
 def update_tasks(modeladmin: 'UserAdmin', request, queryset: QuerySet[User]):
     modeladmin.message_user(request, 'Tasks updated')
-
-
-@admin.register(ScheduledTask)
-class ScheduledTaskAdmin(admin.ModelAdmin):
-    pass
 
 
 class UserInline(admin.TabularInline):
