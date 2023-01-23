@@ -46,7 +46,6 @@ def notify_before_subscription_expires(telegram_id: int, hours_before_expiration
 @shared_task
 def on_user_subscription_date_updated(*, telegram_id: int):
     user = get_user(telegram_id=telegram_id)
-    remove_previously_scheduled_tasks(user=user.id)
 
     task_notify_before_1_hour = notify_before_subscription_expires.apply_async(
         kwargs={'telegram_id': user.telegram_id, 'hours_before_expiration': 1},
@@ -61,13 +60,4 @@ def on_user_subscription_date_updated(*, telegram_id: int):
     task_handle_user_subscription = on_subscription_expired.apply_async(
         kwargs={'telegram_id': user.telegram_id},
         eta=user.subscription_expires_at,
-    )
-
-    create_new_scheduled_tasks(
-        user=user.id,
-        tasks=(
-            task_notify_before_1_hour,
-            task_notify_before_24_hours,
-            task_handle_user_subscription,
-        ),
     )
