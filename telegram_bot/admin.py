@@ -6,13 +6,10 @@ from django.db.models import QuerySet
 from telegram_bot.models import User, ScheduledTask
 from wireguard.exceptions import VPNServerError
 from wireguard.services.vpn_server import VPNServerService
-from wireguard.tasks import on_user_subscription_date_updated
 
 
 @admin.action(description='Update tasks')
 def update_tasks(modeladmin: 'UserAdmin', request, queryset: QuerySet[User]):
-    for telegram_id in queryset.values_list('telegram_id', flat=True):
-        on_user_subscription_date_updated.delay(telegram_id=telegram_id)
     modeladmin.message_user(request, 'Tasks updated')
 
 
@@ -81,8 +78,6 @@ class UserAdmin(admin.ModelAdmin):
             obj.uuid = user_in_vpn_server.uuid
             if obj.is_subscribed:
                 new_vpn_server.enable_user(obj.uuid)
-                if obj.subscribed_at != old_user.subscribed_at:
-                    on_user_subscription_date_updated.delay(telegram_id=obj.telegram_id)
             else:
                 new_vpn_server.disable_user(obj.uuid)
         super().save_model(request, obj, form, change)
