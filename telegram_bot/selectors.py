@@ -11,7 +11,6 @@ from telegram_bot.schemas import UserIDAndTelegramID
 __all__ = (
     'get_user',
     'get_all_user_ids_and_telegram_ids',
-    'get_previously_scheduled_tasks',
     'get_subscription_expired_users',
     'get_subscription_expired_users_with_payments',
 )
