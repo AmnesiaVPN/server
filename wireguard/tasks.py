@@ -7,8 +7,7 @@ from django.utils import timezone
 from donationalerts.exceptions import UserHasNoUnusedPaymentError
 from donationalerts.selectors import get_oldest_unused_payment
 from telegram_bot.exceptions import TelegramAPIError
-from telegram_bot.models import User
-from telegram_bot.selectors import get_user, get_subscribed_users, get_subscription_expired_users_with_payments
+from telegram_bot.selectors import get_subscribed_users, get_subscription_expired_users_with_payments
 from telegram_bot.services.telegram import TelegramMessagingService, SubscriptionExpiresInHoursMessage
 from telegram_bot.services.users import on_subscription_activated, on_subscription_deactivated
 
@@ -21,15 +20,6 @@ def activate_expired_subscription_by_payment_task():
         payment = user.payment_set.first()
         on_subscription_activated(telegram_messaging_service=telegram_messaging_service, user=user, payment=payment)
         logging.info(f'User {user.telegram_id} subscription was activated')
-
-
-def check_subscription(telegram_messaging_service: TelegramMessagingService, user: User):
-    try:
-        payment = get_oldest_unused_payment(user=user)
-    except UserHasNoUnusedPaymentError:
-        on_subscription_deactivated(telegram_messaging_service=telegram_messaging_service, user=user)
-    else:
-        on_subscription_activated(telegram_messaging_service=telegram_messaging_service, user=user, payment=payment)
 
 
 @shared_task
@@ -62,23 +52,3 @@ def subscription_expiration_control_task():
             if hours_before_expiration == 0:
                 on_subscription_activated(telegram_messaging_service=telegram_messaging_service, user=user,
                                           payment=payment)
-
-
-@shared_task
-def on_subscription_expired(telegram_id: int):
-    telegram_messaging_service = TelegramMessagingService(settings.BOT_TOKEN)
-    user = get_user(telegram_id=telegram_id)
-    try:
-        get_oldest_unused_payment(user=user)
-    except UserHasNoUnusedPaymentError:
-        on_subscription_deactivated(telegram_messaging_service=telegram_messaging_service, user=user)
-
-
-@shared_task
-def notify_before_subscription_expires(telegram_id: int, hours_before_expiration: int):
-    message = SubscriptionExpiresInHoursMessage(
-        telegram_id=telegram_id,
-        hours_before_expiration=hours_before_expiration,
-    )
-    telegram_messaging_service = TelegramMessagingService(settings.BOT_TOKEN)
-    telegram_messaging_service.send_message(chat_id=telegram_id, message=message)
