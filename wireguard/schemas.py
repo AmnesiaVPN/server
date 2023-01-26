@@ -19,7 +19,7 @@ class UserCreated(BaseModel):
 class User(BaseModel):
     address: str
     created_at: datetime.datetime = Field(alias='createdAt')
-    enabled: bool
+    is_enabled: bool = Field(alias='enabled')
     uuid: UUID = Field(alias='id')
     latest_handshake_at: datetime.datetime | None = Field(alias='latestHandshakeAt')
     name: str
