@@ -109,3 +109,9 @@ class VPNServerService:
         except VPNServerError:
             self.create_user(telegram_id)
             return self.get_user(telegram_id), True
+
+    def is_user_enabled(self, telegram_id: int | str) -> bool:
+        return self.get_user(telegram_id).is_enabled
+
+    def is_user_disabled(self, telegram_id: int | str) -> bool:
+        return not self.is_user_enabled(telegram_id)
